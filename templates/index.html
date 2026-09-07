@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Upload Video — Hệ thống xử lý vi phạm quy định đội mũ bảo hiểm{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-4">
+    <div class="col-md-7 col-lg-5">
+
+        <div class="card shadow-sm">
+            <div class="card-header bg-dark text-white py-3">
+                <h5 class="mb-0 fw-semibold">Phân Tích Video Vi Phạm</h5>
+                <small class="text-secondary">Tải lên video để bắt đầu nhận diện không đội mũ bảo hiểm</small>
+            </div>
+
+            <div class="card-body p-4">
+
+                <!-- Drop zone chọn file -->
+                <div class="drop-zone mb-3" id="dropZone">
+                    <div id="dropDefault">
+                        <div style="font-size: 2.5rem; color: #adb5bd;">&#8681;</div>
+                        <p class="mb-1 fw-semibold">Kéo thả video vào đây</p>
+                        <p class="text-muted small mb-0">hoặc bấm để chọn file</p>
+                        <p class="text-muted small">Hỗ trợ: MP4, AVI, MOV, MKV</p>
+                    </div>
+                    <div id="dropSelected" style="display:none;">
+                        <div style="font-size: 2rem; color: #198754;">&#10003;</div>
+                        <p class="mb-1 fw-semibold text-success" id="selectedFileName">—</p>
+                        <p class="text-muted small mb-0" id="selectedFileSize">—</p>
+                        <p class="text-muted small mt-1">Bấm để đổi file khác</p>
+                    </div>
+                    <input type="file" id="fileInput" accept=".mp4,.avi,.mov,.mkv" style="display:none;">
+                </div>
+
+                <!-- Progress bar -->
+                <div id="uploadProgress" style="display:none;" class="mb-3">
+                    <div class="d-flex justify-content-between small text-muted mb-1">
+                        <span>Đang tải lên video...</span>
+                        <span id="progressPercent">0%</span>
+                    </div>
+                    <div class="progress" style="height: 8px;">
+                        <div id="progressBar"
+                             class="progress-bar progress-bar-striped progress-bar-animated bg-danger"
+                             style="width: 0%">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Thông báo lỗi -->
+                <div id="uploadError" class="alert alert-danger py-2 small" style="display:none;"></div>
+
+                <!-- Nút upload -->
+                <button id="uploadBtn"
+                        class="btn btn-danger w-100 fw-semibold py-2"
+                        disabled>
+                    Bắt Đầu Phân Tích
+                </button>
+
+                <p class="text-muted text-center small mt-3 mb-0">
+                    Hệ thống sẽ tự động phát hiện xe không đội mũ bảo hiểm
+                </p>
+            </div>
+        </div>
+
+        <div class="card mt-3 border-0 bg-transparent">
+            <div class="card-body py-2 px-0">
+                <p class="text-muted small mb-1"><strong>Lưu ý:</strong></p>
+                <ul class="text-muted small mb-0">
+                    <li>File video nên có độ phân giải từ 480p trở lên</li>
+                    <li>Quá trình phân tích chạy theo tốc độ thực của video</li>
+                    <li>Kết quả hiển thị trực tiếp trong lúc xử lý</li>
+                </ul>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', initUploadPage);
+</script>
+{% endblock %}

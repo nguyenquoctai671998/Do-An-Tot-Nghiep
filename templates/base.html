@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Hệ thống xử lý vi phạm quy định đội mũ bảo hiểm{% endblock %}</title>
+
+    <!-- Bootstrap 5 CSS từ CDN — không cần cài -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        /* ================================================
+           CSS toàn cục — áp dụng cho tất cả trang
+           ================================================ */
+
+        body {
+            background-color: #f0f2f5;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        /* --- Navbar --- */
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.1rem;
+            letter-spacing: 0.5px;
+        }
+        .brand-dot { color: #ff4444; }
+
+        /* --- Video stream --- */
+        .video-box {
+            background: #111;
+            border-radius: 8px;
+            min-height: 340px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+        .video-box img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        .video-placeholder {
+            color: #555;
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        /* --- Panel vi phạm bên phải --- */
+        .violations-panel {
+            height: calc(100vh - 160px);
+            overflow-y: auto;
+            scrollbar-width: thin;
+        }
+        .violations-panel::-webkit-scrollbar { width: 5px; }
+        .violations-panel::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
+
+        /* --- Card vi phạm mới (màu trái theo trạng thái) --- */
+        .v-card { border-left: 4px solid #dc3545; transition: box-shadow 0.2s; }
+        .v-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .v-card.confirmed { border-left-color: #198754; }
+        .v-card.rejected  { border-left-color: #6c757d; }
+
+        /* --- Badge trạng thái --- */
+        .badge-pending   { background-color: #ffc107; color: #333; }
+        .badge-confirmed { background-color: #198754; }
+        .badge-rejected  { background-color: #6c757d; }
+
+        /* --- Stat cards trên dashboard --- */
+        .stat-card { transition: transform 0.15s; cursor: default; }
+        .stat-card:hover { transform: translateY(-3px); }
+        .stat-number { font-size: 2rem; font-weight: 700; }
+
+        /* --- Bảng vi phạm --- */
+        .table-violations tbody tr { cursor: pointer; transition: background 0.1s; }
+        .table-violations tbody tr:hover { background: #f8f9fa; }
+
+        /* --- Ảnh bằng chứng trong modal --- */
+        .evidence-img { 
+            width: 100%;
+            border-radius: 6px;
+            border: 1px solid #dee2e6;
+        }
+
+        /* --- Drop zone upload --- */
+        .drop-zone {
+            border: 2px dashed #adb5bd;
+            border-radius: 10px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .drop-zone:hover, .drop-zone.dragover {
+            border-color: #dc3545;
+            background: #fff5f5;
+        }
+        .drop-zone.has-file {
+            border-color: #198754;
+            background: #f0fff4;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ============================================================
+     NAVBAR — xuất hiện trên mọi trang
+     ============================================================ -->
+<nav class="navbar navbar-dark bg-dark shadow-sm">
+    <div class="container-fluid px-4">
+        <a class="navbar-brand" href="/">
+            <span class="brand-dot">&#9650;</span> Hệ thống xử lý vi phạm quy định đội mũ bảo hiểm
+        </a>
+        <div class="d-flex gap-2">
+            <a href="/" class="btn btn-sm btn-outline-light">Upload Video</a>
+            <a href="/dashboard" class="btn btn-sm btn-warning text-dark fw-semibold">Dashboard</a>
+        </div>
+    </div>
+</nav>
+
+<!-- ============================================================
+     NỘI DUNG TRANG — mỗi trang con điền vào đây
+     ============================================================ -->
+<div class="container-fluid px-4 mt-3">
+    {% block content %}{% endblock %}
+</div>
+
+<!-- Bootstrap 5 JS (gồm Popper cho modal/tooltip) -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- JS chung của app (thêm cache buster để cập nhật JS ngay lập tức) -->
+<script src="/static/js/app.js?v=20260901_1"></script>
+
+<!-- Mỗi trang có thể thêm JS riêng vào đây -->
+{% block extra_js %}{% endblock %}
+
+</body>
+</html>

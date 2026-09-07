@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Đang Xử Lý — Hệ thống xử lý vi phạm quy định đội mũ bảo hiểm{% endblock %}
+
+{% block content %}
+
+<!-- Thanh trạng thái phiên làm việc -->
+<div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+    <div>
+        <h5 class="mb-0 fw-semibold">Đang Phân Tích Video</h5>
+        <small class="text-muted">Job ID: <code>{{ job_id }}</code></small>
+    </div>
+    <div class="d-flex align-items-center gap-3">
+        <span id="statusBadge" class="badge bg-warning text-dark fs-6 px-3 py-2">
+            Đang xử lý...
+        </span>
+        <span class="text-muted">
+            Tổng vi phạm: <strong id="totalCount">0</strong>
+        </span>
+        <a href="/dashboard" class="btn btn-sm btn-outline-secondary">Xem Dashboard</a>
+    </div>
+</div>
+
+<!-- Layout 2 cột: Video | Panel vi phạm -->
+<div class="row g-3">
+
+    <!-- ===== CỘT TRÁI: Khung xem video ===== -->
+    <div class="col-lg-8">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-dark text-white py-2">
+                <span class="small fw-semibold">Video trực tiếp</span>
+                <span id="fpsIndicator" class="badge bg-secondary ms-2 small" style="display:none;">Đang stream</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="video-box" id="videoBox">
+                    <div class="video-placeholder" id="videoPlaceholder">
+                        <div style="font-size: 3rem; color: #444;">&#9654;</div>
+                        <p class="mb-1">Đang kết nối đến video stream...</p>
+                        <p class="small text-muted mb-0">Vui lòng chờ trong giây lát</p>
+                    </div>
+                    <img id="videoFeed" src="" alt="Video stream"
+                         style="display:none; width:100%; height:auto;">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== CỘT PHẢI: Panel vi phạm ===== -->
+    <div class="col-lg-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-dark text-white py-2 d-flex justify-content-between align-items-center">
+                <span class="small fw-semibold">Vi Phạm Phát Hiện</span>
+                <span class="badge bg-danger rounded-pill" id="violationCount">0</span>
+            </div>
+            <div class="card-body p-2 violations-panel" id="violationsPanel">
+                <div id="noViolationMsg" class="text-center text-muted py-4">
+                    <div style="font-size: 2rem;">&#128065;</div>
+                    <p class="small mt-2 mb-0">Chưa phát hiện vi phạm nào</p>
+                    <p class="small">Hệ thống đang giám sát...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Thông báo hoàn tất -->
+<div id="doneAlert" class="alert alert-success mt-3 d-flex align-items-center" style="display:none;">
+    <strong>Xử lý hoàn tất!</strong>&nbsp;
+    <span id="doneSummary"></span>&nbsp;
+    <a href="/dashboard" class="btn btn-sm btn-success ms-auto">Xem tất cả vi phạm</a>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    window.CURRENT_JOB_ID = "{{ job_id }}";
+    document.addEventListener('DOMContentLoaded', initViewPage);
+</script>
+{% endblock %}
