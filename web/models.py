@@ -1,10 +1,3 @@
-"""
-web/models.py — Định nghĩa cấu trúc dữ liệu cho toàn bộ ứng dụng.
-
-File này KHÔNG kết nối database, KHÔNG xử lý logic.
-Chỉ định nghĩa "hình dạng" của dữ liệu — dùng chung ở mọi nơi.
-"""
-
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -12,8 +5,6 @@ from typing import Optional
 # ==========================================================
 # STATUS CONSTANTS — Trạng thái vi phạm
 # ==========================================================
-# Dùng constants thay vì string cứng để tránh lỗi typo.
-# Ví dụ: STATUS_PENDING thay vì viết "pending" khắp nơi.
 
 STATUS_PENDING   = "pending"    # Chờ xét duyệt (mới phát hiện)
 STATUS_CONFIRMED = "confirmed"  # Đã xác nhận là vi phạm thật
@@ -28,21 +19,6 @@ ALL_STATUSES = [STATUS_PENDING, STATUS_CONFIRMED, STATUS_REJECTED]
 
 @dataclass
 class Violation:
-    """
-    Đại diện cho 1 trường hợp vi phạm không đội mũ bảo hiểm.
-
-    Ánh xạ 1-1 với 1 hàng trong bảng `violations` của SQLite.
-
-    Attributes:
-        id              : Khóa chính, SQLite tự tăng (None khi chưa lưu vào DB).
-        bike_id         : Track ID của xe máy từ ByteTrack.
-        timestamp       : Chuỗi thời gian phát hiện, ví dụ "20260831-201532_045".
-        confidence      : Độ tự tin của nhãn no-helmet (0.0 – 1.0).
-        image_raw       : Đường dẫn tới ảnh gốc (chưa khoanh vùng).
-        image_annotated : Đường dẫn tới ảnh đã khoanh vùng đỏ.
-        status          : Trạng thái duyệt: "pending" | "confirmed" | "rejected".
-        video_name      : Tên file video nguồn, ví dụ "giaothong_1.mp4".
-    """
 
     bike_id         : int
     timestamp       : str
@@ -54,11 +30,6 @@ class Violation:
     id              : Optional[int] = None  # None = chưa lưu vào DB
 
     def to_dict(self) -> dict:
-        """
-        Chuyển thành dict — dùng khi trả JSON về cho frontend.
-        Lưu ý: ép kiểu tường minh để tránh numpy.int64/float32/bytes
-        không serialize được sang JSON qua WebSocket.
-        """
         bike_id_val = self.bike_id
         if isinstance(bike_id_val, bytes):
             import struct

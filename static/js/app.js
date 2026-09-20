@@ -1,12 +1,4 @@
-/**
- * app.js — Logic JavaScript cho toàn bộ ứng dụng
- *
- * Cấu trúc:
- *   1. TRANG UPLOAD  (index.html)  — initUploadPage()
- *   2. TRANG VIEW    (view.html)   — initViewPage()
- *   3. TRANG DASHBOARD             — initDashboardPage()
- *   4. SHARED        — Hàm API dùng chung
- */
+
 
 /* ============================================================
    1. TRANG UPLOAD — index.html
@@ -608,13 +600,7 @@ async function dashDeleteModal(id) {
    ============================================================ */
 
 /**
- * Load ảnh với cơ chế retry tự động.
- *
- * Vấn đề: Server lưu ảnh vào disk mất 5-30ms. Nếu browser request
- * ảnh ngay lập tức, file có thể chưa tồn tại → 404 → ảnh trắng.
- *
- * Giải pháp: Nếu load ảnh thất bại, thử lại sau `delay` ms.
- * Thêm timestamp vào URL để tránh browser cache ảnh lỗi.
+
  *
  * @param {HTMLImageElement} imgEl   - Thẻ <img> cần load
  * @param {string}           src     - URL gốc của ảnh

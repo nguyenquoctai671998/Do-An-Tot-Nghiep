@@ -1,28 +1,3 @@
-"""
-web/main.py — Diem khoi dong chinh cua FastAPI app.
-
-Cach chay:
-    cd /path/to/helmet_violation_system
-    uvicorn web.main:app --reload --host 0.0.0.0 --port 8000
-
-Sau do mo browser tai: http://localhost:8000
-
-Cau truc routes:
-    GET  /              -> Trang upload video (index.html)
-    GET  /dashboard     -> Trang quan ly vi pham (dashboard.html)
-    GET  /view/{job_id} -> Trang xem video dang xu ly (view.html)
-
-    POST /upload        -> Nhan video upload (upload router)
-    GET  /job/{id}      -> Trang thai job (upload router)
-    WS   /ws/{job_id}   -> WebSocket stream (stream router)
-
-    GET  /api/violations       -> Danh sach vi pham (violations router)
-    PATCH /api/violations/{id}/confirm -> Xac nhan
-    PATCH /api/violations/{id}/reject  -> Huy
-    GET  /api/stats            -> Thong ke
-    GET  /api/images/{file}    -> Anh bang chung
-"""
-
 import os
 
 from fastapi import FastAPI, Request

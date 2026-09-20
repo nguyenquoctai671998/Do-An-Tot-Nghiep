@@ -1,12 +1,3 @@
-"""
-web/database.py — Quản lý toàn bộ thao tác với SQLite.
-
-NGUYÊN TẮC thiết kế:
-  - Mọi nơi trong app chỉ gọi hàm ở file này, KHÔNG viết SQL trực tiếp ở chỗ khác.
-  - Mỗi hàm tự mở và đóng kết nối (connection per call) — an toàn với threading.
-  - Trả về Violation object hoặc list[Violation], KHÔNG trả raw tuple.
-"""
-
 import sqlite3
 import os
 from typing import Optional
@@ -41,13 +32,6 @@ CREATE TABLE IF NOT EXISTS violations (
 # ==========================================================
 
 def _get_connection() -> sqlite3.Connection:
-    """
-    Tạo kết nối SQLite với row_factory để truy cập cột bằng tên.
-    
-    row_factory = sqlite3.Row cho phép viết:
-        row["bike_id"]  thay vì  row[1]
-    Giúp code dễ đọc và ít lỗi hơn khi thêm/xóa cột.
-    """
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
@@ -83,12 +67,6 @@ def _row_to_violation(row: sqlite3.Row) -> Violation:
 # ==========================================================
 
 def init_db() -> None:
-    """
-    Khởi tạo database — tạo bảng nếu chưa tồn tại.
-    
-    Gọi 1 lần duy nhất khi FastAPI app khởi động (startup event).
-    Dùng IF NOT EXISTS nên an toàn khi gọi nhiều lần.
-    """
     with _get_connection() as conn:
         conn.execute(CREATE_TABLE_SQL)
         conn.commit()
@@ -103,15 +81,6 @@ def insert_violation(
     image_annotated: str,
     video_name     : str,
 ) -> Violation:
-    """
-    Lưu 1 vi phạm mới vào DB với trạng thái mặc định 'pending'.
-    
-    Được gọi bởi:
-        - on_violation callback trong detector.py (khi phát hiện vi phạm)
-    
-    Returns:
-        Violation object đã có id từ DB (id được SQLite gán).
-    """
     sql = """
         INSERT INTO violations 
             (bike_id, timestamp, confidence, image_raw, image_annotated, status, video_name)
@@ -141,18 +110,6 @@ def insert_violation(
 
 
 def get_all_violations(status_filter: Optional[str] = None) -> list[Violation]:
-    """
-    Lấy toàn bộ vi phạm, có thể lọc theo trạng thái.
-    
-    Args:
-        status_filter: None → lấy tất cả
-                       "pending"   → chỉ lấy chờ duyệt
-                       "confirmed" → chỉ lấy đã xác nhận
-                       "rejected"  → chỉ lấy đã hủy
-    
-    Returns:
-        Danh sách Violation, sắp xếp mới nhất lên đầu (ORDER BY id DESC).
-    """
     # Nếu frontend truyền chuỗi rỗng "" (khi bấm Tất Cả), coi như None (lấy tất cả)
     if status_filter == "":
         status_filter = None
@@ -174,12 +131,6 @@ def get_all_violations(status_filter: Optional[str] = None) -> list[Violation]:
 
 
 def get_violation_by_id(violation_id: int) -> Optional[Violation]:
-    """
-    Lấy 1 vi phạm theo ID.
-    
-    Returns:
-        Violation object nếu tìm thấy, None nếu không có.
-    """
     sql = "SELECT * FROM violations WHERE id = ?"
     with _get_connection() as conn:
         row = conn.execute(sql, (violation_id,)).fetchone()
@@ -187,19 +138,6 @@ def get_violation_by_id(violation_id: int) -> Optional[Violation]:
 
 
 def update_status(violation_id: int, new_status: str) -> Optional[Violation]:
-    """
-    Cập nhật trạng thái của 1 vi phạm (xác nhận hoặc hủy).
-    
-    Args:
-        violation_id: ID của vi phạm cần cập nhật.
-        new_status  : "confirmed" hoặc "rejected".
-    
-    Returns:
-        Violation đã cập nhật nếu thành công, None nếu không tìm thấy ID.
-    
-    Raises:
-        ValueError: Nếu new_status không hợp lệ.
-    """
     if new_status not in [STATUS_CONFIRMED, STATUS_REJECTED]:
         raise ValueError(f"Trạng thái không hợp lệ: '{new_status}'. Phải là 'confirmed' hoặc 'rejected'.")
 
@@ -218,14 +156,6 @@ def update_status(violation_id: int, new_status: str) -> Optional[Violation]:
 
 
 def get_stats() -> Stats:
-    """
-    Thống kê tổng quan — dùng cho header của dashboard.
-    
-    Thực hiện 1 query duy nhất với GROUP BY thay vì 4 query riêng lẻ.
-    
-    Returns:
-        Stats object chứa tổng, pending, confirmed, rejected.
-    """
     sql = """
         SELECT 
             COUNT(*) AS total,
@@ -246,12 +176,6 @@ def get_stats() -> Stats:
 
 
 def delete_violation(violation_id: int) -> bool:
-    """
-    Xóa 1 vi phạm khỏi DB (dùng cho admin nếu cần).
-    
-    Returns:
-        True nếu xóa thành công, False nếu không tìm thấy ID.
-    """
     sql = "DELETE FROM violations WHERE id = ?"
     with _get_connection() as conn:
         cursor = conn.execute(sql, (violation_id,))
@@ -260,12 +184,6 @@ def delete_violation(violation_id: int) -> bool:
 
 
 def clear_violations(status_filter: Optional[str] = None) -> int:
-    """
-    Xóa toàn bộ vi phạm hoặc xóa theo trạng thái (ví dụ xóa các mục 'rejected').
-    
-    Returns:
-        Số lượng bản ghi đã xóa.
-    """
     if status_filter:
         sql = "DELETE FROM violations WHERE status = ?"
         params = (status_filter,)

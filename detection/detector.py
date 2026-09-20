@@ -1,8 +1,3 @@
-"""
-detector.py — Module nhận diện vi phạm không đội mũ bảo hiểm
-Refactored từ script gốc: tổ chức thành class, dễ tích hợp với web backend.
-"""
-
 import os
 import time
 import threading
@@ -15,9 +10,9 @@ from ultralytics import YOLO
 # CẤU HÌNH MẶC ĐỊNH
 DEFAULT_MODEL_PATH    = "best.pt"
 DEFAULT_SAVE_DIR      = "violations"
-DEFAULT_CONF          = 0.45
+DEFAULT_CONF          = 0.6
 DEFAULT_IMGSZ         = 640
-VIOLATION_MARGIN      = 0.15
+MIN_HEAD_OVERLAP_RATIO = 0.60
 
 ALLOWED_CLASS_NAMES   = ["motobike", "helmet", "no-helmet"]
 
@@ -27,12 +22,25 @@ COLOR_CAPTURED_VIOLATOR = (0, 255, 0)   # Xanh lá — đã ghi nhận, bám the
 
 
 # HÀM BỔ TRỢ
-def is_overlapping(box1, box2) -> bool:
-    #Kiểm tra 2 Bounding Box có giao nhau không (IoU-free, nhanh hơn).
-    x1_1, y1_1, x2_1, y2_1 = box1
-    x1_2, y1_2, x2_2, y2_2 = box2
-    return (min(x2_1, x2_2) > max(x1_1, x1_2) and
-            min(y2_1, y2_2) > max(y1_1, y1_2))
+def is_head_inside_motobike(head_box, bike_box, min_ratio: float = MIN_HEAD_OVERLAP_RATIO) -> bool:
+    hx1, hy1, hx2, hy2 = head_box
+    bx1, by1, bx2, by2 = bike_box
+
+    # Tọa độ phần giao nhau giữa 2 hình chữ nhật
+    inter_x1 = max(hx1, bx1)
+    inter_y1 = max(hy1, by1)
+    inter_x2 = min(hx2, bx2)
+    inter_y2 = min(hy2, by2)
+
+    # Không giao nhau
+    if inter_x2 <= inter_x1 or inter_y2 <= inter_y1:
+        return False
+
+    inter_area = (inter_x2 - inter_x1) * (inter_y2 - inter_y1)
+    head_area  = max(1e-6, (hx2 - hx1) * (hy2 - hy1))
+
+    overlap_ratio = inter_area / head_area
+    return overlap_ratio >= min_ratio
 
 
 def draw_box(img, box, label: str, color: tuple):
@@ -52,18 +60,6 @@ def draw_box(img, box, label: str, color: tuple):
     cv2.putText(img, label, (x1 + 3, bg_y2 - 5),
                 cv2.FONT_HERSHEY_SIMPLEX, font_scale, (255, 255, 255), thickness)
     return img
-
-
-def draw_dashboard(img, total: int):
-    #Vẽ bảng đếm tổng vi phạm ở góc trái trên cùng.
-    h_img, w_img = img.shape[:2]
-    fs    = max(0.6, min(w_img, h_img) / 800.0)
-    thick = max(2, int(min(w_img, h_img) / 400.0))
-    text  = f"Tổng vi phạm: {total}"
-    (tw, th), _ = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, fs, thick)
-    cv2.rectangle(img, (15, 15), (25 + tw, 25 + th + 10), (0, 0, 0), -1)
-    cv2.putText(img, text, (20, 20 + th),
-                cv2.FONT_HERSHEY_SIMPLEX, fs, (0, 255, 255), thick)
 
 
 def _make_timestamp() -> str:
@@ -128,16 +124,6 @@ class HelmetViolationDetector:
 
     # API chính: xử lý 1 video
     def process_video(self, video_path: str, display: bool = False, on_frame=None):
-        """
-        Xu ly toan bo video, phat hien vi pham, luu anh.
-
-        Args:
-            video_path : Duong dan toi file video.
-            display    : True -> mo cua so OpenCV (dung khi chay standalone).
-            on_frame   : Callback(frame_bytes: bytes) duoc goi moi N frame.
-                         Web backend truyen ham nay de nhan frame qua WebSocket.
-                         None -> khong stream frame (standalone mode).
-        """
         # Reset trang thai cho moi video moi
         self._captured_ids.clear()
         self.total_violators = 0
@@ -167,7 +153,6 @@ class HelmetViolationDetector:
             live_frame = frame.copy()   # Anh hien thi - co ve bounding box
 
             live_frame = self._process_frame(raw_frame, live_frame)
-            draw_dashboard(live_frame, self.total_violators)
 
             # --- Gui frame ve browser qua WebSocket ---
             # Chi gui moi STREAM_EVERY frame de giam tai bang thong.
@@ -242,8 +227,8 @@ class HelmetViolationDetector:
         if mb_id is None:
             return live_frame
 
-        assoc_helmets    = [h  for h  in helmets    if is_overlapping(h["xyxy"],  mb_xyxy)]
-        assoc_no_helmets = [nh for nh in no_helmets if is_overlapping(nh["xyxy"], mb_xyxy)]
+        assoc_helmets    = [h  for h  in helmets    if is_head_inside_motobike(h["xyxy"],  mb_xyxy)]
+        assoc_no_helmets = [nh for nh in no_helmets if is_head_inside_motobike(nh["xyxy"], mb_xyxy)]
 
         # --- Xe đã bị ghi nhận: chỉ vẽ màu xanh, bám theo ---
         if mb_id in self._captured_ids:
@@ -256,10 +241,9 @@ class HelmetViolationDetector:
         best_helmet_conf    = max((h["conf"]  for h  in assoc_helmets),    default=0.0)
         best_no_helmet_conf = max((nh["conf"] for nh in assoc_no_helmets), default=0.0)
 
-        # ✅ Điều kiện vi phạm: no-helmet phải cao hơn helmet ít nhất VIOLATION_MARGIN
+        # Điều kiện vi phạm: no-helmet phải cao hơn helmet ít nhất VIOLATION_MARGIN
         is_violation = (
-            best_no_helmet_conf > 0
-            and (best_no_helmet_conf - best_helmet_conf) >= VIOLATION_MARGIN
+            best_no_helmet_conf > DEFAULT_CONF
         )
 
         if is_violation:
@@ -281,16 +265,11 @@ class HelmetViolationDetector:
 
             timestamp = _make_timestamp()
 
-            # Lưu ảnh ĐỒNG BỘ — chờ ghi xong mới gọi callback
-            # Lý do: nếu lưu bất đồng bộ, browser load ảnh trước khi file tồn tại → ảnh trắng
-            # _save_pair chỉ tốn 5-30ms (ghi JPEG local), chỉ chạy khi có vi phạm → OK
             saved = _save_pair(
                 raw_frame.copy(), detail_frame,
                 int(mb_id), timestamp, self.save_dir,
             )
 
-            # Lấy đường dẫn thực tế sau khi lưu xong
-            # Nếu lưu thất bại (saved = {}), dùng đường dẫn tính trước làm fallback
             raw_path = saved.get(
                 "raw",
                 os.path.join(self.save_dir, f"{timestamp}_raw_ID{int(mb_id)}.jpg")
@@ -300,7 +279,6 @@ class HelmetViolationDetector:
                 os.path.join(self.save_dir, f"{timestamp}_annotated_ID{int(mb_id)}.jpg")
             )
 
-            # Gọi callback — ảnh đã chắc chắn tồn tại trên disk lúc này
             if self.on_violation:
                 try:
                     self.on_violation(
@@ -325,21 +303,3 @@ class HelmetViolationDetector:
         """Dọn dẹp tài nguyên — gọi khi ứng dụng tắt."""
         self._executor.shutdown(wait=True)
         print("[Detector] Đã dọn dẹp ThreadPoolExecutor.")
-
-
-# ==========================================================
-# CHẠY TRỰC TIẾP (standalone — để test không cần web)
-# ==========================================================
-if __name__ == "__main__":
-    VIDEO_PATH = "giaothong_khongmu_1.mp4"
-    MODEL_PATH = "best.pt"
-
-    detector = HelmetViolationDetector(
-        model_path=MODEL_PATH,
-        save_dir="violations",
-        conf=DEFAULT_CONF,
-    )
-    try:
-        detector.process_video(VIDEO_PATH, display=True)
-    finally:
-        detector.shutdown()
